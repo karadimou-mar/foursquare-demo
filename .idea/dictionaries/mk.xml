@@ -1,9 +1,13 @@
 <component name="ProjectDictionaryState">
   <dictionary name="mk">
     <words>
+      <w>coroutines</w>
       <w>geocoder</w>
       <w>geocoding</w>
+      <w>latlng</w>
+      <w>lngs</w>
       <w>textview</w>
+      <w>viewmodel</w>
     </words>
   </dictionary>
 </component>

@@ -1,4 +1,4 @@
-package com.example.venueapp
+package com.example.venueapp.ui
 
 import android.Manifest
 import android.app.AlertDialog
@@ -6,11 +6,13 @@ import android.app.Dialog
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Point
 import android.location.Address
 import android.location.Geocoder
 import android.location.Location
 import android.location.LocationManager
 import android.os.Bundle
+import android.os.Handler
 import android.provider.Settings
 import android.util.Log
 import android.view.View
@@ -19,11 +21,22 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import com.example.venueapp.Constants.DEFAULT_ZOOM
-import com.example.venueapp.Constants.ERROR_DIALOG_REQUEST
-import com.example.venueapp.Constants.LOCATION_PERMISSION_REQUEST_CODE
-import com.example.venueapp.Constants.PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION
-import com.example.venueapp.Constants.PERMISSIONS_REQUEST_ENABLE_GPS
+import androidx.lifecycle.LifecycleCoroutineScope
+import androidx.lifecycle.ViewModelProviders
+import com.example.venueapp.R
+import com.example.venueapp.utils.Constants.CATEGORY_ID
+import com.example.venueapp.utils.Constants.CLIENT_ID
+import com.example.venueapp.utils.Constants.CLIENT_SECRET
+import com.example.venueapp.utils.Constants.DEFAULT_ZOOM
+import com.example.venueapp.utils.Constants.ERROR_DIALOG_REQUEST
+import com.example.venueapp.utils.Constants.INTENT
+import com.example.venueapp.utils.Constants.LIMIT
+import com.example.venueapp.utils.Constants.LOCATION_PERMISSION_REQUEST_CODE
+import com.example.venueapp.utils.Constants.PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION
+import com.example.venueapp.utils.Constants.PERMISSIONS_REQUEST_ENABLE_GPS
+import com.example.venueapp.utils.Constants.RADIUS
+import com.example.venueapp.utils.Constants.VERSION
+import com.example.venueapp.viewmodels.MainViewModel
 import com.google.android.gms.common.ConnectionResult
 import com.google.android.gms.common.GoogleApiAvailability
 import com.google.android.gms.common.api.GoogleApiClient
@@ -36,27 +49,118 @@ import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.MarkerOptions
 import java.util.*
+import kotlin.collections.ArrayList
 
 class MainActivity : AppCompatActivity(), OnMapReadyCallback,
-    GoogleApiClient.OnConnectionFailedListener {
+    GoogleApiClient.OnConnectionFailedListener, GoogleMap.OnCameraIdleListener {
 
     private var locationPermissionGranted: Boolean = false
     private lateinit var map: GoogleMap
     private lateinit var fusedLocationClient: FusedLocationProviderClient
     private var address: String = ""
     private lateinit var geocoder: Geocoder
+    private var currentLocationList: MutableList<LatLng> = ArrayList()
+    private var markersList: MutableList<MarkerOptions> = ArrayList()
+    private var isCameraIdle = false
+    private var isCameraIdleHandler = Handler()
+
 
     //ui components
     private lateinit var textViewAddress: TextView
+
+    private lateinit var mainViewModel: MainViewModel
+
+//    val latLng = LatLng(38.026506, 23.752280)
+//    val latLngStr = latLng.latitude.toString() + "," + latLng.longitude.toString()
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         initComponents()
-
         getLocationPermission()
+
+        mainViewModel = ViewModelProviders.of(this)[MainViewModel::class.java]
+        //subscribeObservers(latLngStr, CATEGORY_ID, RADIUS, INTENT, LIMIT, CLIENT_ID, CLIENT_SECRET, VERSION)
     }
+
+
+    private fun subscribeObservers(
+        latlng: String,
+        categoryId: String,
+        radius: Int,
+        intent: String,
+        limit: Int,
+        clientId: String,
+        client_secret: String,
+        v: String
+    ) {
+        mainViewModel.searchByCategory(
+            latlng,
+            categoryId,
+            radius,
+            intent,
+            limit,
+            clientId,
+            client_secret,
+            v
+        ).observe(this, androidx.lifecycle.Observer {
+            if (it.isNotEmpty()) {
+               markersList.clear()
+                map.clear()
+                Log.d(TAG, "markersList clear: $markersList")
+                for (i in it.indices) {
+                    Log.d(TAG, "$i: ${it[i]}\n")
+
+                    val responseLatLng: LatLng = LatLng(it[i].location.lat, it[i].location.lng)
+                    Log.d(TAG, "currentLatLng: $responseLatLng")
+
+                    val marker = MarkerOptions()
+                        .position(responseLatLng)
+                        .title(it[i].name)
+                    map.addMarker(marker)
+
+                    markersList.add(marker)
+
+                }
+                Log.d(TAG, "markersList: $markersList")
+                //    currentLocationList.add(latlng)
+            } else if (it.isNullOrEmpty()) {
+                Log.d(TAG, "An empty or null list was returned.")
+            }
+        })
+
+
+    }
+
+    override fun onCameraIdle() {
+        Log.d(TAG, "onCameraIdle: called")
+        val center: LatLng = map.cameraPosition.target
+        Log.d(TAG, "onCameraIdle: center: $center")
+
+
+        val latLngStr = center.latitude.toString() + "," + center.longitude.toString()
+
+        //TODO needs improvement
+        for (i in currentLocationList.indices){
+            if (center != currentLocationList[0]){
+                subscribeObservers(latLngStr, CATEGORY_ID, RADIUS, INTENT, LIMIT, CLIENT_ID, CLIENT_SECRET, VERSION)
+            }
+        }
+        currentLocationList.add(center)
+        Log.d(TAG, "onCameraIdle: currentLocationList: $currentLocationList")
+
+
+
+
+}
+
+
+
+//    fun getNewPosition(latLng: LatLng){
+//        currentLocationList.add(latLng)
+//        map.isMyLocationEnabled = true
+//    }
 
 
     override fun onMapReady(googleMap: GoogleMap) {
@@ -65,6 +169,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback,
 
         if (isPermissionGranted()) {
             getDeviceLocation()
+            setListeners()
 
             map.isMyLocationEnabled = true
             map.apply {
@@ -73,6 +178,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback,
             }
         }
     }
+
 
     override fun onConnectionFailed(p0: ConnectionResult) {
         TODO("Not yet implemented")
@@ -106,16 +212,16 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback,
      * Returns a String address with reverse geocoding
      *
      */
-    private fun getAddressString(lat: Double, long: Double): String{
+    private fun getAddressString(lat: Double, long: Double): String {
         geocoder = Geocoder(this, Locale.getDefault())
 
         try {
-            val addressList: List<Address>? = geocoder.getFromLocation(lat,long,1)
-            addressList?.let {list ->
+            val addressList: List<Address>? = geocoder.getFromLocation(lat, long, 1)
+            addressList?.let { list ->
                 val currentAddress: Address = list[0]
                 val strCurrentAddress: StringBuilder = StringBuilder("")
 
-                for (i in 0..currentAddress.maxAddressLineIndex){
+                for (i in 0..currentAddress.maxAddressLineIndex) {
                     strCurrentAddress.append(currentAddress.getAddressLine(i))
                 }
                 address = strCurrentAddress.toString()
@@ -123,7 +229,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback,
             }?.run {
                 Log.d(TAG, "My location: No address found.")
             }
-        }catch (e: Exception){
+        } catch (e: Exception) {
             e.printStackTrace()
             Log.e(TAG, e.message!!)
         }
@@ -146,26 +252,30 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback,
                         Log.d(TAG, "onComplete: found current location: $currentLocation")
 
                         val latLng = LatLng(currentLocation.latitude, currentLocation.longitude)
-                        moveCamera(
-                            latLng,
-                            DEFAULT_ZOOM,
-                            getString(R.string.my_location)
-                        )
+                        moveCamera(latLng, DEFAULT_ZOOM, getString(R.string.my_location))
 
                         getAddressString(currentLocation.latitude, currentLocation.longitude)
                         textViewAddress.visibility = View.VISIBLE
                         textViewAddress.text = getAddressString(currentLocation.latitude, currentLocation.longitude)
 
+//                        currentLocationList.add(LatLng(currentLocation.latitude, currentLocation.longitude))
+//                        Log.d(TAG, "current position list: $currentLocationList")
+
                     } else {
                         Log.d(TAG, "onComplete: current location not found")
-                        Toast.makeText(this, "unable to get current location", Toast.LENGTH_SHORT)
-                            .show()
+                        Toast.makeText(
+                            this,
+                            "unable to get current location",
+                            Toast.LENGTH_SHORT
+                        ).show()
                     }
                 }
+                isCameraIdle = true
             }
         } catch (e: SecurityException) {
             Log.e(TAG, "getDeviceLocation: SecurityException: ${e.message!!}")
         }
+
     }
 
     /**
@@ -224,7 +334,8 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback,
 
         Log.d(TAG, "checking gps")
 
-        val manager: LocationManager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
+        val manager: LocationManager =
+            getSystemService(Context.LOCATION_SERVICE) as LocationManager
 
         if (!manager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
             Log.d(TAG, "gps is not enabled")
@@ -300,11 +411,16 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback,
             if (!locationPermissionGranted) {
                 getLocationPermission()
             }
+
         }
     }
 
-    private fun initComponents(){
+    private fun initComponents() {
         textViewAddress = findViewById(R.id.textview_address)
+    }
+
+    private fun setListeners() {
+        map.setOnCameraIdleListener(this)
     }
 
 
