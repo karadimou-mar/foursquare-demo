@@ -86,5 +86,13 @@ dependencies {
     implementation "androidx.lifecycle:lifecycle-runtime-ktx:$ktx_extensions"
     implementation "androidx.lifecycle:lifecycle-livedata-ktx:$ktx_extensions"
 
+    // Circle ImageView
+    def circle_image = "3.0.1"
+    implementation "de.hdodenhof:circleimageview:$circle_image"
+
+    //Picasso
+    implementation 'com.squareup.picasso:picasso:2.71828'
+
+
 
 }

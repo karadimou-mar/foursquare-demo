@@ -1,4 +1,6 @@
-package com.example.venueapp.models.main
+package com.example.venueapp.models
+
+import com.example.venueapp.models.main.Icon
 
 data class Category(
     val icon: Icon,

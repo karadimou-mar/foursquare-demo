@@ -1,4 +1,6 @@
-package com.example.venueapp.models.main
+package com.example.venueapp.models
+
+import com.example.venueapp.models.main.LabeledLatLng
 
 data class Location(
     val address: String,

@@ -1,32 +1,30 @@
 package com.example.venueapp.ui
 
 import android.Manifest
+import android.animation.ObjectAnimator
 import android.app.AlertDialog
 import android.app.Dialog
 import android.content.Context
+
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.graphics.Point
 import android.location.Address
 import android.location.Geocoder
 import android.location.Location
 import android.location.LocationManager
 import android.os.Bundle
-import android.os.Handler
 import android.provider.Settings
 import android.util.Log
 import android.view.View
-import android.widget.TextView
-import android.widget.Toast
+import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
+import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import androidx.lifecycle.LifecycleCoroutineScope
 import androidx.lifecycle.ViewModelProviders
 import com.example.venueapp.R
+import com.example.venueapp.models.main.Venue
 import com.example.venueapp.utils.Constants.CATEGORY_ID
-import com.example.venueapp.utils.Constants.CLIENT_ID
-import com.example.venueapp.utils.Constants.CLIENT_SECRET
 import com.example.venueapp.utils.Constants.DEFAULT_ZOOM
 import com.example.venueapp.utils.Constants.ERROR_DIALOG_REQUEST
 import com.example.venueapp.utils.Constants.INTENT
@@ -35,7 +33,7 @@ import com.example.venueapp.utils.Constants.LOCATION_PERMISSION_REQUEST_CODE
 import com.example.venueapp.utils.Constants.PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION
 import com.example.venueapp.utils.Constants.PERMISSIONS_REQUEST_ENABLE_GPS
 import com.example.venueapp.utils.Constants.RADIUS
-import com.example.venueapp.utils.Constants.VERSION
+import com.example.venueapp.utils.ViewWeightAnimationWrapper
 import com.example.venueapp.viewmodels.MainViewModel
 import com.google.android.gms.common.ConnectionResult
 import com.google.android.gms.common.GoogleApiAvailability
@@ -47,12 +45,16 @@ import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.LatLng
+import com.google.android.gms.maps.model.Marker
 import com.google.android.gms.maps.model.MarkerOptions
+import com.squareup.picasso.Picasso
+import de.hdodenhof.circleimageview.CircleImageView
+import kotlinx.android.synthetic.main.activity_main.*
 import java.util.*
 import kotlin.collections.ArrayList
 
-class MainActivity : AppCompatActivity(), OnMapReadyCallback,
-    GoogleApiClient.OnConnectionFailedListener, GoogleMap.OnCameraIdleListener {
+class MainActivity : AppCompatActivity(), OnMapReadyCallback, View.OnClickListener,
+    GoogleApiClient.OnConnectionFailedListener, GoogleMap.OnCameraIdleListener, GoogleMap.OnMarkerClickListener {
 
     private var locationPermissionGranted: Boolean = false
     private lateinit var map: GoogleMap
@@ -62,11 +64,17 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback,
     private var currentLocationList: MutableList<LatLng> = ArrayList()
     private var markersList: MutableList<MarkerOptions> = ArrayList()
     private var isCameraIdle = false
-    private var isCameraIdleHandler = Handler()
-
+    private var venueId: String = ""
 
     //ui components
-    private lateinit var textViewAddress: TextView
+    private lateinit var tvCurrentAddress: TextView
+    private lateinit var mapContainer: ConstraintLayout
+    private lateinit var searchLayout: RelativeLayout
+    private lateinit var tvName: TextView
+    private lateinit var tvAddress: TextView
+    private lateinit var tvCategory: TextView
+    private lateinit var btnReset: ImageButton
+    private lateinit var image: CircleImageView
 
     private lateinit var mainViewModel: MainViewModel
 
@@ -85,26 +93,8 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback,
     }
 
 
-    private fun subscribeObservers(
-        latlng: String,
-        categoryId: String,
-        radius: Int,
-        intent: String,
-        limit: Int,
-        clientId: String,
-        client_secret: String,
-        v: String
-    ) {
-        mainViewModel.searchByCategory(
-            latlng,
-            categoryId,
-            radius,
-            intent,
-            limit,
-            clientId,
-            client_secret,
-            v
-        ).observe(this, androidx.lifecycle.Observer {
+    private fun subscribeObserverSearch(latlng: String, categoryId: String, radius: Int, intent: String, limit: Int) {
+        mainViewModel.searchByCategory(latlng, categoryId, radius, intent, limit).observe(this, androidx.lifecycle.Observer {
             if (it.isNotEmpty()) {
                markersList.clear()
                 map.clear()
@@ -119,9 +109,12 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback,
                         .position(responseLatLng)
                         .title(it[i].name)
                     map.addMarker(marker)
-
                     markersList.add(marker)
 
+                    venueId = it[i].id
+                    Log.d(TAG, "venueId: $venueId")
+
+                    setUpWidgets(it,i)
                 }
                 Log.d(TAG, "markersList: $markersList")
                 //    currentLocationList.add(latlng)
@@ -129,8 +122,41 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback,
                 Log.d(TAG, "An empty or null list was returned.")
             }
         })
+    }
 
+    private fun subscribeObserverDetails(venueId: String){
+        mainViewModel.getDetails(venueId).observe(this, androidx.lifecycle.Observer {
+            if (it != null){
+                    val url =
+                        "${it.photos.groups[0].items[0].prefix}110x110${it.photos.groups[0].items[0].suffix}"
+                Log.d(TAG, "photo url: $url")
+                setUpPhoto(url)
+            }else {
+                Log.d(TAG, "A empty or null object wea returned.")
+                setUpPhoto("${R.drawable.ic_launcher_foreground}")
+            }
+        })
+    }
 
+    override fun onMarkerClick(marker: Marker?): Boolean {
+        if (searchLayout.visibility == View.GONE) {
+            tvCurrentAddress.visibility = View.GONE
+            searchLayout.visibility = View.VISIBLE
+            contractMapAnimation()
+            subscribeObserverDetails(venueId)
+        }
+        return true
+    }
+
+    override fun onClick(v: View?) {
+        when (v){
+            btnReset -> {
+                tvCurrentAddress.visibility = View.VISIBLE
+                searchLayout.visibility = View.GONE
+                expandMapAnimation()
+                map.clear()
+            }
+        }
     }
 
     override fun onCameraIdle() {
@@ -142,25 +168,16 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback,
         val latLngStr = center.latitude.toString() + "," + center.longitude.toString()
 
         //TODO needs improvement
-        for (i in currentLocationList.indices){
-            if (center != currentLocationList[0]){
-                subscribeObservers(latLngStr, CATEGORY_ID, RADIUS, INTENT, LIMIT, CLIENT_ID, CLIENT_SECRET, VERSION)
+
+            for (i in currentLocationList.indices) {
+                if (center != currentLocationList[0]) {
+                    subscribeObserverSearch(latLngStr, CATEGORY_ID, RADIUS, INTENT, LIMIT)
+                }
             }
-        }
+
         currentLocationList.add(center)
         Log.d(TAG, "onCameraIdle: currentLocationList: $currentLocationList")
-
-
-
-
 }
-
-
-
-//    fun getNewPosition(latLng: LatLng){
-//        currentLocationList.add(latLng)
-//        map.isMyLocationEnabled = true
-//    }
 
 
     override fun onMapReady(googleMap: GoogleMap) {
@@ -255,8 +272,8 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback,
                         moveCamera(latLng, DEFAULT_ZOOM, getString(R.string.my_location))
 
                         getAddressString(currentLocation.latitude, currentLocation.longitude)
-                        textViewAddress.visibility = View.VISIBLE
-                        textViewAddress.text = getAddressString(currentLocation.latitude, currentLocation.longitude)
+                        tvCurrentAddress.visibility = View.VISIBLE
+                        tvCurrentAddress.text = getAddressString(currentLocation.latitude, currentLocation.longitude)
 
 //                        currentLocationList.add(LatLng(currentLocation.latitude, currentLocation.longitude))
 //                        Log.d(TAG, "current position list: $currentLocationList")
@@ -404,6 +421,65 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback,
         return false
     }
 
+    private fun setUpWidgets(venue: List<Venue>, i: Int){
+        tvName.text = venue[i].name
+        tvAddress.text = venue[i].location.address
+        tvCategory.text = venue[i].categories[0].name
+    }
+
+    private fun setUpPhoto(url: String){
+        Picasso.get()
+            .load(url)
+            .error(R.drawable.ic_launcher_foreground)
+            //.resize(0, image.height)
+            .into(image)
+    }
+
+    private fun expandMapAnimation(){
+        val mapAnimationWrapper = ViewWeightAnimationWrapper(mapContainer)
+        val mapAnimation: ObjectAnimator = ObjectAnimator.ofFloat(
+            mapAnimationWrapper,
+            "weight",
+            50f,100f
+        )
+        mapAnimation.duration = 800
+
+        val searchAnimationWrapper = ViewWeightAnimationWrapper(searchLayout)
+        val searchAnimation: ObjectAnimator = ObjectAnimator.ofFloat(
+            searchAnimationWrapper,
+            "weight",
+            50f,0f
+            )
+        searchAnimation.duration = 800
+
+        mapAnimation.start()
+        searchAnimation.start()
+    }
+
+    private fun contractMapAnimation(){
+        val mapAnimationWrapper = ViewWeightAnimationWrapper(mapContainer)
+        val mapAnimation: ObjectAnimator = ObjectAnimator.ofFloat(
+            mapAnimationWrapper,
+            "weight",
+            100f,80f
+        )
+        mapAnimation.duration = 800
+
+        val searchAnimationWrapper = ViewWeightAnimationWrapper(searchLayout)
+        val searchAnimation: ObjectAnimator = ObjectAnimator.ofFloat(
+            searchAnimationWrapper,
+            "weight",
+            0f,50f
+        )
+        searchAnimation.duration = 800
+
+        mapAnimation.start()
+        searchAnimation.start()
+    }
+
+
+
+
     override fun onResume() {
         super.onResume()
 
@@ -416,15 +492,29 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback,
     }
 
     private fun initComponents() {
-        textViewAddress = findViewById(R.id.textview_address)
+        tvCurrentAddress = findViewById(R.id.textview_current_address)
+        mapContainer = findViewById(R.id.map_container)
+       searchLayout = findViewById(R.id.search_layout)
+        tvName = findViewById(R.id.textview_name)
+        tvAddress = findViewById(R.id.textview_address)
+        tvCategory = findViewById(R.id.textview_category)
+        btnReset = findViewById(R.id.btn_reset)
+        image = findViewById(R.id.image)
+
     }
 
     private fun setListeners() {
         map.setOnCameraIdleListener(this)
+        map.setOnMarkerClickListener(this)
+        btnReset.setOnClickListener(this)
     }
 
 
     companion object {
         private const val TAG = "MainActivity"
     }
+
+
+
+
 }

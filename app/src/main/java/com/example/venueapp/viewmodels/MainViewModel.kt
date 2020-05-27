@@ -5,7 +5,9 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import com.example.venueapp.api.RetrofitBuilder
-import com.example.venueapp.models.main.ApiGeneralResponse
+import com.example.venueapp.models.ApiGeneralResponse
+import com.example.venueapp.models.details.DetailResponse
+import com.example.venueapp.models.details.DetailVenue
 import com.example.venueapp.models.main.SearchResponse
 import com.example.venueapp.models.main.Venue
 import retrofit2.Call
@@ -20,81 +22,73 @@ class MainViewModel : ViewModel() {
     }
 
     private var searchResult: MutableLiveData<List<Venue>> = MutableLiveData()
+    private var detailsResult: MutableLiveData<DetailVenue> = MutableLiveData()
 
-    fun searchByCategory(
-        latLng: String, categoryId: String,
-        radius: Int, intent: String, limit: Int, clientId: String, client_secret: String, v: String
-    ): LiveData<List<Venue>> {
+    fun searchByCategory(latLng: String, categoryId: String,radius: Int, intent: String, limit: Int): LiveData<List<Venue>> {
 
-//        val lat = latLng.latitude
-//        val long = latLng.longitude
-
-        RetrofitBuilder.apiService.searchByCategory(
-            latLng,
-            categoryId,
-            radius,
-            intent,
-            limit,
-            clientId,
-            client_secret,
-            v
-        ).enqueue(
-            object : Callback<ApiGeneralResponse> {
-                override fun onFailure(call: Call<ApiGeneralResponse>, t: Throwable) {
+        RetrofitBuilder.apiService.searchByCategory(latLng, categoryId, radius, intent, limit).enqueue(
+            object : Callback<ApiGeneralResponse<SearchResponse>> {
+                override fun onFailure(call: Call<ApiGeneralResponse<SearchResponse>>, t: Throwable) {
                     //TODO("Not yet implemented")
-                    Log.e(TAG, "onFailure: ${t.message!!}")
+                    Log.e(TAG, "searchByCategory: onFailure: ${t.message!!}")
                 }
-
                 override fun onResponse(
-                    call: Call<ApiGeneralResponse>,
-                    response: Response<ApiGeneralResponse>
+                    call: Call<ApiGeneralResponse<SearchResponse>>,
+                    response: Response<ApiGeneralResponse<SearchResponse>>
                 ) {
                     if (response.isSuccessful) {
                         if (response.body() != null) {
-                            Log.d(TAG, "onResponse: ${response.raw().request().url()}")
+                            Log.d(TAG, "searchByCategory: onResponse: ${response.raw().request().url()}")
 
                             response.body()?.let {
-//                               val name = it.response.venues[0].name
-//                               Log.d(TAG, "cafe name that was found: $name")
-
                                 val list: List<Venue> = response.body()!!.response.venues
                                 for (i in list.indices) {
                                     Log.d(TAG, "name $i: ${list[i].name}")
                                 }
                                 searchResult.postValue(list)
                             }
-
-
-                        } else {
-                            onFailure(
-                                call,
-                                Throwable("Unsuccessful search for specific category: ${response.code()}")
-                            )
                         }
+                    }else {
+                        onFailure(
+                            call,
+                            Throwable("Unsuccessful search for specific category: ${response.code()}")
+                        )
                     }
-
                 }
             }
         )
         return searchResult
     }
 
-    /**
-     *  Gets a list of venues names.
-     *  Returns an empty list when no results.
-     *
-     */
-    private fun getResults(apiGeneralResponse: ApiGeneralResponse): MutableList<Venue> {
+    fun getDetails(venueId: String) : LiveData<DetailVenue>{
+        RetrofitBuilder.apiService.getDetails(venueId).enqueue(
+            object : Callback<ApiGeneralResponse<DetailResponse>>{
+                override fun onFailure(call: Call<ApiGeneralResponse<DetailResponse>>, t: Throwable) {
+                    //TODO("Not yet implemented")
+                    Log.e(TAG, "getDetails: onFailure: ${t.message!!}")
+                }
 
-        apiGeneralResponse?.let {
-            val venuesList: MutableList<Venue> = ArrayList()
-            it.response.venues.forEach {
-                venuesList.add(it)
+                override fun onResponse(
+                    call: Call<ApiGeneralResponse<DetailResponse>>,
+                    response: Response<ApiGeneralResponse<DetailResponse>>
+                ) {
+                    if (response.isSuccessful){
+                        if (response.body() != null){
+                            Log.d(TAG, "getDetails: onResponse: ${response.raw().request().url()}")
+
+                            response.body()!!.response.venue.let {
+                                detailsResult.postValue(it)
+                            }
+                        }
+                    }else{
+                        onFailure(call, Throwable("Unsuccessful search for details: ${response.code()}"))
+                    }
+                }
             }
-            for (i in 0 until venuesList.size) {
-                Log.d(TAG, venuesList[i].name)
-            }
-            return venuesList
-        }
+        )
+        return detailsResult
     }
+
+
+
 }
