@@ -4,4 +4,12 @@
     <string name="current_address">Current Address</string>
     <string name="this_is_an_image">This is an image</string>
     <string name="this_is_button_for_resizing">This is button for resizing</string>
+    <string name="name">Name</string>
+    <string name="https_foursquare_com">https://foursquare.com</string>
+    <string name="phone">(0030) 6976703667</string>
+    <string name="this_is_an_address">This is an address..</string>
+    <string name="open_now">Open now</string>
+    <string name="review">(312)</string>
+    <string name="rating">5.0</string>
+    <string name="decription">Decription</string>
 </resources>

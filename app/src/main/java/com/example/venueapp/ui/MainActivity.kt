@@ -30,6 +30,7 @@ import com.example.venueapp.utils.Constants.ERROR_DIALOG_REQUEST
 import com.example.venueapp.utils.Constants.INTENT
 import com.example.venueapp.utils.Constants.LIMIT
 import com.example.venueapp.utils.Constants.LOCATION_PERMISSION_REQUEST_CODE
+import com.example.venueapp.utils.Constants.PARAM_INTENT
 import com.example.venueapp.utils.Constants.PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION
 import com.example.venueapp.utils.Constants.PERMISSIONS_REQUEST_ENABLE_GPS
 import com.example.venueapp.utils.Constants.RADIUS
@@ -53,8 +54,9 @@ import kotlinx.android.synthetic.main.activity_main.*
 import java.util.*
 import kotlin.collections.ArrayList
 
-class MainActivity : AppCompatActivity(), OnMapReadyCallback, View.OnClickListener,
-    GoogleApiClient.OnConnectionFailedListener, GoogleMap.OnCameraIdleListener, GoogleMap.OnMarkerClickListener {
+class MainActivity : BaseActivity(), OnMapReadyCallback, View.OnClickListener,
+    GoogleApiClient.OnConnectionFailedListener, GoogleMap.OnCameraIdleListener,
+    GoogleMap.OnMarkerClickListener{
 
     private var locationPermissionGranted: Boolean = false
     private lateinit var map: GoogleMap
@@ -78,9 +80,6 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, View.OnClickListen
 
     private lateinit var mainViewModel: MainViewModel
 
-//    val latLng = LatLng(38.026506, 23.752280)
-//    val latLngStr = latLng.latitude.toString() + "," + latLng.longitude.toString()
-
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -88,10 +87,11 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, View.OnClickListen
         initComponents()
         getLocationPermission()
 
-        mainViewModel = ViewModelProviders.of(this)[MainViewModel::class.java]
-        //subscribeObservers(latLngStr, CATEGORY_ID, RADIUS, INTENT, LIMIT, CLIENT_ID, CLIENT_SECRET, VERSION)
-    }
+        //showProgressBar(true)
 
+        mainViewModel = ViewModelProviders.of(this)[MainViewModel::class.java]
+
+    }
 
     private fun subscribeObserverSearch(latlng: String, categoryId: String, radius: Int, intent: String, limit: Int) {
         mainViewModel.searchByCategory(latlng, categoryId, radius, intent, limit).observe(this, androidx.lifecycle.Observer {
@@ -156,8 +156,13 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, View.OnClickListen
                 expandMapAnimation()
                 map.clear()
             }
+            searchLayout -> {
+                createIntent()
+            }
         }
     }
+
+
 
     override fun onCameraIdle() {
         Log.d(TAG, "onCameraIdle: called")
@@ -212,6 +217,13 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, View.OnClickListen
                 initMap()
             }
         }
+    }
+
+    private fun createIntent(){
+        Log.d(TAG, "onViewClicked: called")
+        val intent = Intent(this, DetailActivity::class.java)
+        intent.putExtra(PARAM_INTENT, venueId)
+        startActivity(intent)
     }
 
     /**
@@ -507,6 +519,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, View.OnClickListen
         map.setOnCameraIdleListener(this)
         map.setOnMarkerClickListener(this)
         btnReset.setOnClickListener(this)
+        searchLayout.setOnClickListener(this)
     }
 
 

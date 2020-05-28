@@ -1,5 +1,9 @@
 package com.example.venueapp.models.details
 
+import android.os.Parcelable
+import kotlinx.android.parcel.Parcelize
+
+@Parcelize
 data class ItemXXXX(
     val createdAt: Int,
     val height: Int,
@@ -10,4 +14,4 @@ data class ItemXXXX(
     //val user: UserXXX,
     val visibility: String,
     val width: Int
-)
+): Parcelable

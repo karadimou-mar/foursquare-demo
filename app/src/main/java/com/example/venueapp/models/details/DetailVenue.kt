@@ -1,8 +1,12 @@
 package com.example.venueapp.models.details
 
+import android.os.Parcel
+import android.os.Parcelable
 import com.example.venueapp.models.Category
 import com.example.venueapp.models.Location
+import kotlinx.android.parcel.Parcelize
 
+@Parcelize
 data class DetailVenue(
     //val attributes: Attributes,
     //val beenHere: BeenHere,
@@ -34,6 +38,6 @@ data class DetailVenue(
     val timeZone: String,
     //val tips: TipsX,
     val url: String,
-    val venueChains: List<Any>,
+    //val venueChains: List<Any>,
     val verified: Boolean
-)
+): Parcelable

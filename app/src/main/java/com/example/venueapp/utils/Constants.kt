@@ -21,4 +21,6 @@ object Constants {
     const val CATEGORY_ID = "4bf58dd8d48988d16d941735"
     const val RADIUS = 2000
 
+    const val PARAM_INTENT = "details"
+
 }

@@ -1,7 +1,10 @@
 package com.example.venueapp.models
 
+import android.os.Parcelable
 import com.example.venueapp.models.main.LabeledLatLng
+import kotlinx.android.parcel.Parcelize
 
+@Parcelize
 data class Location(
     val address: String,
     val cc: String,
@@ -15,4 +18,4 @@ data class Location(
     val lng: Double,
     val postalCode: String,
     val state: String
-)
+): Parcelable
