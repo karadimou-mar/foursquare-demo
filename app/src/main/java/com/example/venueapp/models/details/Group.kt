@@ -4,9 +4,9 @@ import android.os.Parcelable
 import kotlinx.android.parcel.Parcelize
 
 @Parcelize
-data class GroupXXXX(
+data class Group(
     val count: Int,
-    val items: List<ItemXXXX>,
+    val items: List<Item>?,
     val name: String,
     val type: String
 ): Parcelable

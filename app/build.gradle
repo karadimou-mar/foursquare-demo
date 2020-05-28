@@ -9,7 +9,7 @@ android {
 
     defaultConfig {
         applicationId "com.example.venueapp"
-        minSdkVersion 21
+        minSdkVersion 23
         targetSdkVersion 29
         versionCode 1
         versionName "1.0"
@@ -31,6 +31,11 @@ android {
             buildConfigField("String", "CLIENT_SECRET", "\"${clientSecret}\"")
 
 
+        }
+    }
+    sourceSets {
+        main {
+            assets.srcDirs = ['/res/raw']
         }
     }
 

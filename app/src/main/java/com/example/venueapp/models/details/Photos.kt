@@ -6,5 +6,5 @@ import kotlinx.android.parcel.Parcelize
 @Parcelize
 data class Photos(
     val count: Int,
-    val groups: List<GroupXXXX>
+    val groups: List<Group>?
 ): Parcelable

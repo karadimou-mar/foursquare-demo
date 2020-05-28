@@ -3,28 +3,38 @@ package com.example.venueapp.api
 import com.example.venueapp.models.ApiGeneralResponse
 import com.example.venueapp.models.details.DetailResponse
 import com.example.venueapp.models.main.SearchResponse
+import com.example.venueapp.utils.Constants.CATEGORY_ID
 import com.example.venueapp.utils.Constants.COMMON_PARAMS
+import com.example.venueapp.utils.Constants.INTENT
+import com.example.venueapp.utils.Constants.LIMIT
+import com.example.venueapp.utils.Constants.RADIUS
 import retrofit2.Call
 import retrofit2.http.GET
 import retrofit2.http.Path
 import retrofit2.http.Query
 
 
-// cafe = 4bf58dd8d48988d16d941735
-
 interface ApiService {
 
-    @GET("venues/search${COMMON_PARAMS}")
+    /**
+     * GET request for cafes within 2000km
+     * The result is limited up to 20 counts
+     *
+     * @param latlng
+     * @return A SearchResponse object
+     */
+    @GET("venues/search?limit=$LIMIT&categoryId=$CATEGORY_ID&radius=$RADIUS&intent=$INTENT${COMMON_PARAMS}")
     fun searchByCategory(
-        @Query("ll") latlng: String,
-        @Query("categoryId") category: String,
-        @Query("radius") radius: Int,
-        @Query("intent") intent: String,
-        @Query("limit") limit: Int
+        @Query("ll") latlng: String
     ): Call<ApiGeneralResponse<SearchResponse>>
-    //LiveData<GenericApiResponse<List<SearchResult>>>
 
-    @GET("venues/{VENUE_ID}/${COMMON_PARAMS}")
+    /**
+     * GET request for details using specific id
+     *
+     * @param venueId
+     * @return A DetailResponse object
+     */
+    @GET("venues/{VENUE_ID}/?${COMMON_PARAMS}")
     fun getDetails(
         @Path("VENUE_ID") venueId: String
     ): Call<ApiGeneralResponse<DetailResponse>>

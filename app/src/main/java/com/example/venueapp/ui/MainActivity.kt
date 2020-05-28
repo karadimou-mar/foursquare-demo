@@ -5,9 +5,13 @@ import android.animation.ObjectAnimator
 import android.app.AlertDialog
 import android.app.Dialog
 import android.content.Context
-
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.content.res.Resources
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.drawable.BitmapDrawable
+import android.graphics.drawable.Drawable
 import android.location.Address
 import android.location.Geocoder
 import android.location.Location
@@ -16,24 +20,22 @@ import android.os.Bundle
 import android.provider.Settings
 import android.util.Log
 import android.view.View
-import android.widget.*
-import androidx.appcompat.app.AppCompatActivity
+import android.widget.ImageButton
+import android.widget.RelativeLayout
+import android.widget.TextView
+import android.widget.Toast
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModelProviders
 import com.example.venueapp.R
 import com.example.venueapp.models.main.Venue
-import com.example.venueapp.utils.Constants.CATEGORY_ID
 import com.example.venueapp.utils.Constants.DEFAULT_ZOOM
 import com.example.venueapp.utils.Constants.ERROR_DIALOG_REQUEST
-import com.example.venueapp.utils.Constants.INTENT
-import com.example.venueapp.utils.Constants.LIMIT
 import com.example.venueapp.utils.Constants.LOCATION_PERMISSION_REQUEST_CODE
 import com.example.venueapp.utils.Constants.PARAM_INTENT
 import com.example.venueapp.utils.Constants.PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION
 import com.example.venueapp.utils.Constants.PERMISSIONS_REQUEST_ENABLE_GPS
-import com.example.venueapp.utils.Constants.RADIUS
 import com.example.venueapp.utils.ViewWeightAnimationWrapper
 import com.example.venueapp.viewmodels.MainViewModel
 import com.google.android.gms.common.ConnectionResult
@@ -46,11 +48,13 @@ import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.LatLng
+import com.google.android.gms.maps.model.MapStyleOptions
 import com.google.android.gms.maps.model.Marker
 import com.google.android.gms.maps.model.MarkerOptions
 import com.squareup.picasso.Picasso
 import de.hdodenhof.circleimageview.CircleImageView
-import kotlinx.android.synthetic.main.activity_main.*
+import java.net.HttpURLConnection
+import java.net.URL
 import java.util.*
 import kotlin.collections.ArrayList
 
@@ -93,8 +97,8 @@ class MainActivity : BaseActivity(), OnMapReadyCallback, View.OnClickListener,
 
     }
 
-    private fun subscribeObserverSearch(latlng: String, categoryId: String, radius: Int, intent: String, limit: Int) {
-        mainViewModel.searchByCategory(latlng, categoryId, radius, intent, limit).observe(this, androidx.lifecycle.Observer {
+    private fun subscribeObserverSearch(latlng: String) {
+        mainViewModel.searchByCategory(latlng).observe(this, androidx.lifecycle.Observer {
             if (it.isNotEmpty()) {
                markersList.clear()
                 map.clear()
@@ -127,13 +131,22 @@ class MainActivity : BaseActivity(), OnMapReadyCallback, View.OnClickListener,
     private fun subscribeObserverDetails(venueId: String){
         mainViewModel.getDetails(venueId).observe(this, androidx.lifecycle.Observer {
             if (it != null){
-                    val url =
-                        "${it.photos.groups[0].items[0].prefix}110x110${it.photos.groups[0].items[0].suffix}"
-                Log.d(TAG, "photo url: $url")
-                setUpPhoto(url)
+                it.photos?.let {
+                    it.groups?.let {
+                        if (it.isNotEmpty()){
+                            val url = "${it[0].items!![0].prefix}110x110${it[0].items!![0].suffix}"
+                            Log.d(TAG, "photo url: $url")
+                            setUpPhoto(url)
+                            return@Observer
+                        }else{
+                            setUpPhoto("${R.drawable.no_image_found}")
+                        }
+                    }
+                }?.run {
+                    setUpPhoto("${R.drawable.spinner}")
+                }
             }else {
-                Log.d(TAG, "A empty or null object wea returned.")
-                setUpPhoto("${R.drawable.ic_launcher_foreground}")
+                    setUpPhoto("${R.drawable.spinner}")
             }
         })
     }
@@ -143,6 +156,7 @@ class MainActivity : BaseActivity(), OnMapReadyCallback, View.OnClickListener,
             tvCurrentAddress.visibility = View.GONE
             searchLayout.visibility = View.VISIBLE
             contractMapAnimation()
+            map.uiSettings.isScrollGesturesEnabled = false
             subscribeObserverDetails(venueId)
         }
         return true
@@ -155,6 +169,7 @@ class MainActivity : BaseActivity(), OnMapReadyCallback, View.OnClickListener,
                 searchLayout.visibility = View.GONE
                 expandMapAnimation()
                 map.clear()
+                map.uiSettings.isScrollGesturesEnabled = true
             }
             searchLayout -> {
                 createIntent()
@@ -176,7 +191,7 @@ class MainActivity : BaseActivity(), OnMapReadyCallback, View.OnClickListener,
 
             for (i in currentLocationList.indices) {
                 if (center != currentLocationList[0]) {
-                    subscribeObserverSearch(latLngStr, CATEGORY_ID, RADIUS, INTENT, LIMIT)
+                    subscribeObserverSearch(latLngStr)
                 }
             }
 
@@ -188,6 +203,8 @@ class MainActivity : BaseActivity(), OnMapReadyCallback, View.OnClickListener,
     override fun onMapReady(googleMap: GoogleMap) {
         Toast.makeText(this, "Map is ready", Toast.LENGTH_SHORT).show()
         map = googleMap
+
+        setMapStyle(map)
 
         if (isPermissionGranted()) {
             getDeviceLocation()
@@ -286,10 +303,6 @@ class MainActivity : BaseActivity(), OnMapReadyCallback, View.OnClickListener,
                         getAddressString(currentLocation.latitude, currentLocation.longitude)
                         tvCurrentAddress.visibility = View.VISIBLE
                         tvCurrentAddress.text = getAddressString(currentLocation.latitude, currentLocation.longitude)
-
-//                        currentLocationList.add(LatLng(currentLocation.latitude, currentLocation.longitude))
-//                        Log.d(TAG, "current position list: $currentLocationList")
-
                     } else {
                         Log.d(TAG, "onComplete: current location not found")
                         Toast.makeText(
@@ -305,6 +318,22 @@ class MainActivity : BaseActivity(), OnMapReadyCallback, View.OnClickListener,
             Log.e(TAG, "getDeviceLocation: SecurityException: ${e.message!!}")
         }
 
+    }
+
+
+    private fun setMapStyle(map: GoogleMap){
+        try {
+
+            val success: Boolean = map.setMapStyle(
+                MapStyleOptions.loadRawResourceStyle(
+                    this, R.raw.style_json)
+                )
+            if (!success) {
+                Log.e(TAG, "Style parsing failed.")
+            }
+        } catch (e: Resources.NotFoundException) {
+            Log.e(TAG, "Can't find style. Error: ", e)
+        }
     }
 
     /**
@@ -433,18 +462,27 @@ class MainActivity : BaseActivity(), OnMapReadyCallback, View.OnClickListener,
         return false
     }
 
-    private fun setUpWidgets(venue: List<Venue>, i: Int){
-        tvName.text = venue[i].name
-        tvAddress.text = venue[i].location.address
-        tvCategory.text = venue[i].categories[0].name
+    private fun setUpWidgets(venue: List<Venue?>, i: Int){
+        tvName.text = if (venue[i]?.name.isNullOrEmpty()) "No name is available." else venue[i]?.name
+        tvAddress.text = if (venue[i]?.location?.address.isNullOrEmpty()) "No address is available." else venue[i]?.location?.address
+        tvCategory.text = setUpCategory(venue,i)
     }
 
     private fun setUpPhoto(url: String){
         Picasso.get()
             .load(url)
-            .error(R.drawable.ic_launcher_foreground)
+            .error(R.drawable.no_image_found)
             //.resize(0, image.height)
             .into(image)
+    }
+
+    private fun setUpCategory(venue: List<Venue?>, i: Int): String{
+        return if (venue[i]!!.categories.size == 0) {
+            "No category is available."
+        }else {
+            venue[i]!!.categories[0].name
+
+        }
     }
 
     private fun expandMapAnimation(){

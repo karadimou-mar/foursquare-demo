@@ -24,9 +24,9 @@ class MainViewModel : ViewModel() {
     private var searchResult: MutableLiveData<List<Venue>> = MutableLiveData()
     private var detailsResult: MutableLiveData<DetailVenue> = MutableLiveData()
 
-    fun searchByCategory(latLng: String, categoryId: String,radius: Int, intent: String, limit: Int): LiveData<List<Venue>> {
+    fun searchByCategory(latLng: String): LiveData<List<Venue>> {
 
-        RetrofitBuilder.apiService.searchByCategory(latLng, categoryId, radius, intent, limit).enqueue(
+        RetrofitBuilder.apiService.searchByCategory(latLng).enqueue(
             object : Callback<ApiGeneralResponse<SearchResponse>> {
                 override fun onFailure(call: Call<ApiGeneralResponse<SearchResponse>>, t: Throwable) {
                     //TODO("Not yet implemented")

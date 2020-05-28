@@ -26,7 +26,7 @@ data class DetailVenue(
     val name: String,
     //val page: Page,
     //val pageUpdates: PageUpdates,
-    val photos: Photos,
+    val photos: Photos?,
     //val phrases: List<Phrase>,
    // val popular: Popular,
     val rating: Double,
