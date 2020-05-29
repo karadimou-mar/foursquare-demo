@@ -9,9 +9,7 @@ data class Item(
     val height: Int,
     val id: String,
     val prefix: String,
-    //val source: SourceX,
     val suffix: String,
-    //val user: UserXXX,
     val visibility: String,
     val width: Int
 ): Parcelable

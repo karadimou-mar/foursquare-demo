@@ -21,7 +21,7 @@ interface ApiService {
      * The result is limited up to 20 counts
      *
      * @param latlng
-     * @return A SearchResponse object
+     * @return
      */
     @GET("venues/search?limit=$LIMIT&categoryId=$CATEGORY_ID&radius=$RADIUS&intent=$INTENT${COMMON_PARAMS}")
     fun searchByCategory(
@@ -32,7 +32,7 @@ interface ApiService {
      * GET request for details using specific id
      *
      * @param venueId
-     * @return A DetailResponse object
+     * @return
      */
     @GET("venues/{VENUE_ID}/?${COMMON_PARAMS}")
     fun getDetails(

@@ -40,10 +40,8 @@ class DetailViewModel : ViewModel() {
                                 MainViewModel.TAG,
                                 "getDetails: onResponse: ${response.raw().request().url()}"
                             )
-
                             response.body()!!.response.venue.let {
                                 detailsResult.postValue(it)
-
                             }
                         }
                     } else {
@@ -57,5 +55,4 @@ class DetailViewModel : ViewModel() {
         )
         return detailsResult
     }
-
 }

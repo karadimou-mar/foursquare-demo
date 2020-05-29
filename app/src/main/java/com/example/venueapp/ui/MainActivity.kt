@@ -85,7 +85,7 @@ class MainActivity : BaseActivity(), OnMapReadyCallback, View.OnClickListener,
         initComponents()
         getLocationPermission()
 
-        //showProgressBar(true)
+        showProgressBar(true)
 
         mainViewModel = ViewModelProviders.of(this)[MainViewModel::class.java]
 
@@ -135,7 +135,7 @@ class MainActivity : BaseActivity(), OnMapReadyCallback, View.OnClickListener,
                     }
                 }
             }else {
-                    setUpPhoto("${R.drawable.spinner}")
+                    setUpPhoto("${R.drawable.no_image_found}")
             }
         })
     }
@@ -166,13 +166,10 @@ class MainActivity : BaseActivity(), OnMapReadyCallback, View.OnClickListener,
         }
     }
 
-
-
     override fun onCameraIdle() {
         Log.d(TAG, "onCameraIdle: called")
         val center: LatLng = map.cameraPosition.target
         Log.d(TAG, "onCameraIdle: center: $center")
-
 
         val latLngStr = center.latitude.toString() + "," + center.longitude.toString()
 
@@ -181,16 +178,14 @@ class MainActivity : BaseActivity(), OnMapReadyCallback, View.OnClickListener,
                     subscribeObserverSearch(latLngStr)
                 }
             }
-
         currentLocationList.add(center)
         Log.d(TAG, "onCameraIdle: currentLocationList: $currentLocationList")
 }
 
-
     override fun onMapReady(googleMap: GoogleMap) {
         //Toast.makeText(this, "Map is ready", Toast.LENGTH_SHORT).show()
         map = googleMap
-
+        showProgressBar(false)
         setMapStyle(map)
 
         if (isPermissionGranted()) {
@@ -205,22 +200,8 @@ class MainActivity : BaseActivity(), OnMapReadyCallback, View.OnClickListener,
         }
     }
 
-
     override fun onConnectionFailed(p0: ConnectionResult) {
         TODO("Not yet implemented")
-    }
-
-    override fun onRequestPermissionsResult(
-        requestCode: Int,
-        permissions: Array<out String>,
-        grantResults: IntArray
-    ) {
-        Log.d(TAG, "onRequestPermissionsResult: called")
-        if (requestCode == LOCATION_PERMISSION_REQUEST_CODE) {
-            if (grantResults.isNotEmpty() && grantResults.contains(PackageManager.PERMISSION_GRANTED)) {
-                initMap()
-            }
-        }
     }
 
     private fun createIntent(){
@@ -307,7 +288,11 @@ class MainActivity : BaseActivity(), OnMapReadyCallback, View.OnClickListener,
 
     }
 
-
+    /**
+     * Change map style
+     *
+     * @param map
+     */
     private fun setMapStyle(map: GoogleMap){
         try {
 
@@ -342,104 +327,6 @@ class MainActivity : BaseActivity(), OnMapReadyCallback, View.OnClickListener,
         }
     }
 
-    /**
-     *  Returns true if permission is granted
-     */
-    private fun isPermissionGranted(): Boolean {
-        Log.d(TAG, "isPermissionGranted: called")
-        return (ContextCompat.checkSelfPermission(
-            this.applicationContext,
-            Manifest.permission.ACCESS_FINE_LOCATION
-        )
-                == PackageManager.PERMISSION_GRANTED)
-    }
-
-    /**
-     *  Alert dialog when GPS is not enabled.
-     */
-
-    private fun buildAlertMessageNoGps() {
-
-        val builder = AlertDialog.Builder(this)
-
-        builder.setMessage("This application requires GPS to work properly, do you want to enable it?")
-            .setCancelable(false)
-            .setPositiveButton("Yes") { dialog, id ->
-                val enableGpsIntent = Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)
-                startActivityForResult(enableGpsIntent, PERMISSIONS_REQUEST_ENABLE_GPS)
-            }
-        val alert = builder.create()
-        alert.show()
-    }
-
-    /**
-     *  Returns true is GPS is enabled.
-     */
-    private fun isGpsEnabled(): Boolean {
-
-        Log.d(TAG, "checking gps")
-
-        val manager: LocationManager =
-            getSystemService(Context.LOCATION_SERVICE) as LocationManager
-
-        if (!manager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
-            Log.d(TAG, "gps is not enabled")
-            buildAlertMessageNoGps()
-            return false
-        }
-        Log.d(TAG, "gps is enabled")
-        return true
-    }
-
-    /**
-     *  Location permission for getting the location of the device.
-     */
-    private fun getLocationPermission() {
-        if (ContextCompat.checkSelfPermission(
-                this.applicationContext,
-                Manifest.permission.ACCESS_FINE_LOCATION
-            )
-            == PackageManager.PERMISSION_GRANTED
-        ) {
-            locationPermissionGranted = true
-            initMap()
-        } else {
-            ActivityCompat.requestPermissions(
-                this, arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
-                PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION
-            )
-        }
-    }
-
-    /**
-     *  Makes sure that google services is installed on the device
-     */
-    private fun isServicesOK(): Boolean {
-
-        Log.d(TAG, "isServicesOK: checking google services version")
-
-        val available: Int =
-            GoogleApiAvailability.getInstance().isGooglePlayServicesAvailable(this@MainActivity)
-
-        when {
-            available == ConnectionResult.SUCCESS -> {
-                Log.d(TAG, "isServicesOK: Google Play Services is working")
-                return true
-            }
-            GoogleApiAvailability.getInstance().isUserResolvableError(available) -> {
-                Log.d(TAG, "isServicesOK: an error occurred")
-
-                val dialog: Dialog = GoogleApiAvailability.getInstance()
-                    .getErrorDialog(this@MainActivity, available, ERROR_DIALOG_REQUEST)
-                dialog.show()
-            }
-            else -> {
-                Toast.makeText(this, "You can't make map requests", Toast.LENGTH_SHORT).show()
-            }
-        }
-        return false
-    }
-
     private fun checkMap(): Boolean {
         if (isServicesOK()) {
             if (isGpsEnabled()) {
@@ -459,7 +346,6 @@ class MainActivity : BaseActivity(), OnMapReadyCallback, View.OnClickListener,
         Picasso.get()
             .load(url)
             .error(R.drawable.no_image_found)
-            //.resize(0, image.height)
             .into(image)
     }
 
@@ -513,10 +399,6 @@ class MainActivity : BaseActivity(), OnMapReadyCallback, View.OnClickListener,
         mapAnimation.start()
         searchAnimation.start()
     }
-
-
-
-
     override fun onResume() {
         super.onResume()
 
@@ -524,7 +406,6 @@ class MainActivity : BaseActivity(), OnMapReadyCallback, View.OnClickListener,
             if (!locationPermissionGranted) {
                 getLocationPermission()
             }
-
         }
     }
 
@@ -547,12 +428,123 @@ class MainActivity : BaseActivity(), OnMapReadyCallback, View.OnClickListener,
         searchLayout.setOnClickListener(this)
     }
 
+    //////////////////////////////////////////////////////////////////////////
+
+    // PERMISSIONS
+    /**
+     *  Makes sure that google services is installed on the device
+     */
+    private fun isServicesOK(): Boolean {
+
+        Log.d(TAG, "isServicesOK: checking google services version")
+
+        val available: Int =
+            GoogleApiAvailability.getInstance().isGooglePlayServicesAvailable(this@MainActivity)
+
+        when {
+            available == ConnectionResult.SUCCESS -> {
+                Log.d(TAG, "isServicesOK: Google Play Services is working")
+                return true
+            }
+            GoogleApiAvailability.getInstance().isUserResolvableError(available) -> {
+                Log.d(TAG, "isServicesOK: an error occurred")
+
+                val dialog: Dialog = GoogleApiAvailability.getInstance()
+                    .getErrorDialog(this@MainActivity, available, ERROR_DIALOG_REQUEST)
+                dialog.show()
+            }
+            else -> {
+                Toast.makeText(this, "You can't make map requests", Toast.LENGTH_SHORT).show()
+            }
+        }
+        return false
+    }
+
+    /**
+     *  Location permission for getting the location of the device.
+     */
+    private fun getLocationPermission() {
+        if (ContextCompat.checkSelfPermission(
+                this.applicationContext,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            )
+            == PackageManager.PERMISSION_GRANTED
+        ) {
+            locationPermissionGranted = true
+            initMap()
+        } else {
+            ActivityCompat.requestPermissions(
+                this, arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
+                PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION
+            )
+        }
+    }
+
+    /**
+     *  Returns true if permission is granted
+     */
+    private fun isPermissionGranted(): Boolean {
+        Log.d(TAG, "isPermissionGranted: called")
+        return (ContextCompat.checkSelfPermission(
+            this.applicationContext,
+            Manifest.permission.ACCESS_FINE_LOCATION
+        )
+                == PackageManager.PERMISSION_GRANTED)
+    }
+
+    /**
+     *  Alert dialog when GPS is not enabled.
+     */
+
+    private fun buildAlertMessageNoGps() {
+
+        val builder = AlertDialog.Builder(this)
+
+        builder.setMessage("This application requires GPS to work properly, do you want to enable it?")
+            .setCancelable(false)
+            .setPositiveButton("Yes") { dialog, id ->
+                val enableGpsIntent = Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)
+                startActivityForResult(enableGpsIntent, PERMISSIONS_REQUEST_ENABLE_GPS)
+            }
+        val alert = builder.create()
+        alert.show()
+    }
+
+    /**
+     *  Returns true is GPS is enabled.
+     */
+    private fun isGpsEnabled(): Boolean {
+
+        Log.d(TAG, "checking gps")
+
+        val manager: LocationManager =
+            getSystemService(Context.LOCATION_SERVICE) as LocationManager
+
+        if (!manager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+            Log.d(TAG, "gps is not enabled")
+            buildAlertMessageNoGps()
+            return false
+        }
+        Log.d(TAG, "gps is enabled")
+        return true
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        Log.d(TAG, "onRequestPermissionsResult: called")
+        if (requestCode == LOCATION_PERMISSION_REQUEST_CODE) {
+            if (grantResults.isNotEmpty() && grantResults.contains(PackageManager.PERMISSION_GRANTED)) {
+                initMap()
+            }
+        }
+    }
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////
 
     companion object {
         private const val TAG = "MainActivity"
     }
-
-
-
-
 }

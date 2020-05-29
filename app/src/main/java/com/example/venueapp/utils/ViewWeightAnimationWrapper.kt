@@ -3,6 +3,11 @@ package com.example.venueapp.utils
 import android.view.View
 import android.widget.LinearLayout
 
+/**
+ * Helper class for showing animation
+ *
+ * @param view
+ */
 class ViewWeightAnimationWrapper(view: View) {
 
     private var view: View? = null

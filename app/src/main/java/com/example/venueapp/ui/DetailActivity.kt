@@ -1,19 +1,14 @@
 package com.example.venueapp.ui
 
-import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
 import android.util.Log
 import android.view.View
 import android.widget.RatingBar
 import android.widget.TextView
-import android.widget.Toast
 import androidx.constraintlayout.widget.ConstraintLayout
-import androidx.core.app.ActivityCompat
-import androidx.core.content.ContextCompat
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProviders
 import com.afollestad.assent.Permission
@@ -22,7 +17,6 @@ import com.afollestad.assent.runWithPermissions
 import com.example.venueapp.R
 import com.example.venueapp.models.details.DetailVenue
 import com.example.venueapp.utils.Constants.PARAM_INTENT
-import com.example.venueapp.utils.Constants.PERMISSIONS_REQUEST_PHONE_CALL
 import com.example.venueapp.viewmodels.DetailViewModel
 
 
@@ -43,7 +37,6 @@ class DetailActivity : BaseActivity(), View.OnClickListener {
     private lateinit var detailDescription: TextView
     private lateinit var website: TextView
     private lateinit var phone: TextView
-    private var isDetailRetrieved = false
 
     private lateinit var detailViewModel: DetailViewModel
 
@@ -70,7 +63,6 @@ class DetailActivity : BaseActivity(), View.OnClickListener {
     private fun subscribeObserver(venueId: String) {
         detailViewModel.getDetails(venueId).observe(this, Observer {
             it?.let {
-                    isDetailRetrieved = true
                     showProgressBar(false)
                     setLayoutVisibility()
                     Log.d(TAG, "getDetails for $venueId: called")
@@ -90,6 +82,11 @@ class DetailActivity : BaseActivity(), View.OnClickListener {
         }
     }
 
+    /**
+     * Open Foursquare link through an intent.
+     *
+     * @param url
+     */
     private fun openWebPage(url: String){
         val webpage = Uri.parse(url)
         val intent = Intent(Intent.ACTION_VIEW, webpage)
@@ -98,8 +95,11 @@ class DetailActivity : BaseActivity(), View.OnClickListener {
         }
     }
 
-
-
+    /**
+     * Setting the widgets depending on available information
+     *
+     * @param venue
+     */
     private fun setUpWidgets(venue: DetailVenue?) {
         detailName.text = if (venue?.name.isNullOrEmpty()) "No name is available." else venue?.name
         detailRating.text = if (venue?.rating.toString()
@@ -164,51 +164,6 @@ class DetailActivity : BaseActivity(), View.OnClickListener {
 
         }
     }
-
-
-
-    /**
-     *  Checking if CALL_PHONE permission is granted
-     *  If it is granted -> perform call
-     *  If it is not granted -> ask for permission
-     */
-    private fun checkForPermission() {
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CALL_PHONE)
-            != PackageManager.PERMISSION_GRANTED
-        ) {
-
-            if (ActivityCompat.shouldShowRequestPermissionRationale(
-                    this,
-                    Manifest.permission.CALL_PHONE
-                )
-            ) {
-                //Todo show an explanation
-            }
-            else {
-                ActivityCompat.requestPermissions(
-                    this, arrayOf(Manifest.permission.CALL_PHONE),
-                    PERMISSIONS_REQUEST_PHONE_CALL
-                )
-            }
-        }
-    }
-
-//    override fun onRequestPermissionsResult(
-//        requestCode: Int,
-//        permissions: Array<out String>,
-//        grantResults: IntArray
-//    ) {
-//        if (requestCode == PERMISSIONS_REQUEST_PHONE_CALL) {
-//            if ((grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED)
-//            ) {
-//                makePhoneCall(phone.text.toString())
-//            }
-//
-//        } else {
-//            phone.isEnabled = false
-//        }
-//    }
-
 
     private fun setListeners() {
         phone.setOnClickListener(this)
