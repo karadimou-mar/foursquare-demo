@@ -8,10 +8,6 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.res.Resources
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
-import android.graphics.drawable.BitmapDrawable
-import android.graphics.drawable.Drawable
 import android.location.Address
 import android.location.Geocoder
 import android.location.Location
@@ -53,8 +49,6 @@ import com.google.android.gms.maps.model.Marker
 import com.google.android.gms.maps.model.MarkerOptions
 import com.squareup.picasso.Picasso
 import de.hdodenhof.circleimageview.CircleImageView
-import java.net.HttpURLConnection
-import java.net.URL
 import java.util.*
 import kotlin.collections.ArrayList
 
@@ -121,7 +115,6 @@ class MainActivity : BaseActivity(), OnMapReadyCallback, View.OnClickListener,
                     setUpWidgets(it,i)
                 }
                 Log.d(TAG, "markersList: $markersList")
-                //    currentLocationList.add(latlng)
             } else if (it.isNullOrEmpty()) {
                 Log.d(TAG, "An empty or null list was returned.")
             }
@@ -138,12 +131,8 @@ class MainActivity : BaseActivity(), OnMapReadyCallback, View.OnClickListener,
                             Log.d(TAG, "photo url: $url")
                             setUpPhoto(url)
                             return@Observer
-                        }else{
-                            setUpPhoto("${R.drawable.no_image_found}")
                         }
                     }
-                }?.run {
-                    setUpPhoto("${R.drawable.spinner}")
                 }
             }else {
                     setUpPhoto("${R.drawable.spinner}")
@@ -187,8 +176,6 @@ class MainActivity : BaseActivity(), OnMapReadyCallback, View.OnClickListener,
 
         val latLngStr = center.latitude.toString() + "," + center.longitude.toString()
 
-        //TODO needs improvement
-
             for (i in currentLocationList.indices) {
                 if (center != currentLocationList[0]) {
                     subscribeObserverSearch(latLngStr)
@@ -201,7 +188,7 @@ class MainActivity : BaseActivity(), OnMapReadyCallback, View.OnClickListener,
 
 
     override fun onMapReady(googleMap: GoogleMap) {
-        Toast.makeText(this, "Map is ready", Toast.LENGTH_SHORT).show()
+        //Toast.makeText(this, "Map is ready", Toast.LENGTH_SHORT).show()
         map = googleMap
 
         setMapStyle(map)

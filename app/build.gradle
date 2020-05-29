@@ -98,6 +98,7 @@ dependencies {
     //Picasso
     implementation 'com.squareup.picasso:picasso:2.71828'
 
-
+    //Library for handling runtime permissions
+    implementation 'com.afollestad.assent:core:3.0.0-RC4'
 
 }

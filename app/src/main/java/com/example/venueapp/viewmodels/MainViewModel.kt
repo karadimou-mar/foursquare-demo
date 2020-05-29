@@ -23,13 +23,14 @@ class MainViewModel : ViewModel() {
 
     private var searchResult: MutableLiveData<List<Venue>> = MutableLiveData()
     private var detailsResult: MutableLiveData<DetailVenue> = MutableLiveData()
+    private var didRetrieveDetails = false
 
     fun searchByCategory(latLng: String): LiveData<List<Venue>> {
 
         RetrofitBuilder.apiService.searchByCategory(latLng).enqueue(
             object : Callback<ApiGeneralResponse<SearchResponse>> {
                 override fun onFailure(call: Call<ApiGeneralResponse<SearchResponse>>, t: Throwable) {
-                    //TODO("Not yet implemented")
+                   didRetrieveDetails = false
                     Log.e(TAG, "searchByCategory: onFailure: ${t.message!!}")
                 }
                 override fun onResponse(
@@ -37,6 +38,7 @@ class MainViewModel : ViewModel() {
                     response: Response<ApiGeneralResponse<SearchResponse>>
                 ) {
                     if (response.isSuccessful) {
+                        didRetrieveDetails = true
                         if (response.body() != null) {
                             Log.d(TAG, "searchByCategory: onResponse: ${response.raw().request().url()}")
 
@@ -89,6 +91,8 @@ class MainViewModel : ViewModel() {
         return detailsResult
     }
 
-
+    fun didRetrieveDetails(): Boolean {
+        return didRetrieveDetails
+    }
 
 }

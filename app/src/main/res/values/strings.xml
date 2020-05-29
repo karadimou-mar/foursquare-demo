@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Venue App</string>
+    <string name="app_name">Foursquare Demo</string>
     <string name="my_location">My Location</string>
     <string name="current_address">Current Address</string>
     <string name="this_is_an_image">This is an image</string>

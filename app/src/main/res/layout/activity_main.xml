@@ -46,7 +46,7 @@
             android:layout_marginTop="10dp"
             android:background="@drawable/shape_round"
             android:contentDescription="@string/this_is_button_for_resizing"
-            android:src="@drawable/ic_refresh_black_24dp" />
+            android:src="@drawable/ic_close_black_24dp" />
 
         <de.hdodenhof.circleimageview.CircleImageView
             android:id="@+id/image"
@@ -62,7 +62,6 @@
             android:layout_below="@+id/image"
             android:layout_marginStart="8dp"
             android:layout_marginTop="12dp"
-            android:fontFamily="cursive"
             android:text="@string/name"
             android:textColor="@android:color/black"
             android:textSize="20sp" />
@@ -75,7 +74,6 @@
             android:layout_below="@+id/textview_name"
             android:layout_marginStart="8dp"
             android:layout_marginTop="5dp"
-            android:fontFamily="cursive"
             android:text="@string/address"
             android:textColor="@android:color/black"
             android:textSize="20sp" />
@@ -89,6 +87,7 @@
             android:layout_marginStart="8dp"
             android:layout_marginTop="5dp"
             android:fontFamily="cursive"
+            android:drawableStart="@drawable/heart"
             android:text="@string/category"
             android:textColor="@android:color/black"
             android:textSize="20sp" />

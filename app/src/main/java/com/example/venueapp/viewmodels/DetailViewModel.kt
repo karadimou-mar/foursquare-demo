@@ -12,19 +12,21 @@ import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
 
-class DetailViewModel : ViewModel(){
+class DetailViewModel : ViewModel() {
 
-    companion object{
+    companion object {
         const val TAG = "DetailViewModel"
     }
 
     private var detailsResult: MutableLiveData<DetailVenue> = MutableLiveData()
 
-    fun getDetails(venueId: String) : LiveData<DetailVenue> {
+    fun getDetails(venueId: String): LiveData<DetailVenue> {
         RetrofitBuilder.apiService.getDetails(venueId).enqueue(
             object : Callback<ApiGeneralResponse<DetailResponse>> {
-                override fun onFailure(call: Call<ApiGeneralResponse<DetailResponse>>, t: Throwable) {
-                    //TODO("Not yet implemented")
+                override fun onFailure(
+                    call: Call<ApiGeneralResponse<DetailResponse>>,
+                    t: Throwable
+                ) {
                     Log.e(MainViewModel.TAG, "getDetails: onFailure: ${t.message!!}")
                 }
 
@@ -32,20 +34,28 @@ class DetailViewModel : ViewModel(){
                     call: Call<ApiGeneralResponse<DetailResponse>>,
                     response: Response<ApiGeneralResponse<DetailResponse>>
                 ) {
-                    if (response.isSuccessful){
-                        if (response.body() != null){
-                            Log.d(MainViewModel.TAG, "getDetails: onResponse: ${response.raw().request().url()}")
+                    if (response.isSuccessful) {
+                        if (response.body() != null) {
+                            Log.d(
+                                MainViewModel.TAG,
+                                "getDetails: onResponse: ${response.raw().request().url()}"
+                            )
 
                             response.body()!!.response.venue.let {
                                 detailsResult.postValue(it)
+
                             }
                         }
-                    }else{
-                        onFailure(call, Throwable("Unsuccessful search for details: ${response.code()}"))
+                    } else {
+                        onFailure(
+                            call,
+                            Throwable("Unsuccessful search for details: ${response.code()}")
+                        )
                     }
                 }
             }
         )
         return detailsResult
     }
+
 }

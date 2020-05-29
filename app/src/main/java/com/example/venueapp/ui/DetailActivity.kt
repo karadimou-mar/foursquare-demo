@@ -1,6 +1,7 @@
 package com.example.venueapp.ui
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
@@ -9,16 +10,21 @@ import android.util.Log
 import android.view.View
 import android.widget.RatingBar
 import android.widget.TextView
+import android.widget.Toast
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProviders
+import com.afollestad.assent.Permission
+import com.afollestad.assent.isAllGranted
+import com.afollestad.assent.runWithPermissions
 import com.example.venueapp.R
 import com.example.venueapp.models.details.DetailVenue
 import com.example.venueapp.utils.Constants.PARAM_INTENT
 import com.example.venueapp.utils.Constants.PERMISSIONS_REQUEST_PHONE_CALL
 import com.example.venueapp.viewmodels.DetailViewModel
+
 
 class DetailActivity : BaseActivity(), View.OnClickListener {
 
@@ -33,12 +39,11 @@ class DetailActivity : BaseActivity(), View.OnClickListener {
     private lateinit var detailReview: TextView
     private lateinit var ratingBar: RatingBar
     private lateinit var detailHours: TextView
-
-    //private lateinit var detailCategory: TextView
     private lateinit var detailAddress: TextView
     private lateinit var detailDescription: TextView
     private lateinit var website: TextView
     private lateinit var phone: TextView
+    private var isDetailRetrieved = false
 
     private lateinit var detailViewModel: DetailViewModel
 
@@ -58,19 +63,19 @@ class DetailActivity : BaseActivity(), View.OnClickListener {
         if (intent.hasExtra(PARAM_INTENT)) {
             val venueId: String = intent.getStringExtra(PARAM_INTENT)!!
             Log.d(TAG, "getIncomingIntent: $venueId")
-            subscribeObservers(venueId)
-
+            subscribeObserver(venueId)
         }
     }
 
-    private fun subscribeObservers(venueId: String) {
+    private fun subscribeObserver(venueId: String) {
         detailViewModel.getDetails(venueId).observe(this, Observer {
             it?.let {
-                showProgressBar(false)
-                setLayoutVisibility()
-                Log.d(TAG, "getDetails for $venueId: called")
-                setUpWidgets(it)
-            }
+                    isDetailRetrieved = true
+                    showProgressBar(false)
+                    setLayoutVisibility()
+                    Log.d(TAG, "getDetails for $venueId: called")
+                    setUpWidgets(it)
+                }
         })
     }
 
@@ -79,8 +84,21 @@ class DetailActivity : BaseActivity(), View.OnClickListener {
             phone -> {
                 makePhoneCall(phone.text.toString())
             }
+            website -> {
+                openWebPage(website.text.toString())
+            }
         }
     }
+
+    private fun openWebPage(url: String){
+        val webpage = Uri.parse(url)
+        val intent = Intent(Intent.ACTION_VIEW, webpage)
+        if (intent.resolveActivity(packageManager) != null){
+            startActivity(intent)
+        }
+    }
+
+
 
     private fun setUpWidgets(venue: DetailVenue?) {
         detailName.text = if (venue?.name.isNullOrEmpty()) "No name is available." else venue?.name
@@ -132,13 +150,22 @@ class DetailActivity : BaseActivity(), View.OnClickListener {
     /**
      *  Make a phone call through an intent.
      */
+    @SuppressLint("MissingPermission")
     private fun makePhoneCall(phoneNumber: String) {
         if (phoneNumber != "No phone number is available.") {
             val intent = Intent(Intent.ACTION_CALL, Uri.parse("tel:$phoneNumber"))
-            checkForPermission()
-            startActivity(intent)
+            //checkForPermission()
+            val permissionsGranted: Boolean = isAllGranted(Permission.CALL_PHONE)
+            runWithPermissions(Permission.CALL_PHONE){
+                if (permissionsGranted) {
+                    startActivity(intent)
+                }
+            }
+
         }
     }
+
+
 
     /**
      *  Checking if CALL_PHONE permission is granted
@@ -166,25 +193,26 @@ class DetailActivity : BaseActivity(), View.OnClickListener {
         }
     }
 
-    override fun onRequestPermissionsResult(
-        requestCode: Int,
-        permissions: Array<out String>,
-        grantResults: IntArray
-    ) {
-        if (requestCode == PERMISSIONS_REQUEST_PHONE_CALL) {
-            if ((grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED)
-            ) {
-                makePhoneCall(phone.text.toString())
-            }
-
-        } else {
-            phone.isEnabled = false
-        }
-    }
+//    override fun onRequestPermissionsResult(
+//        requestCode: Int,
+//        permissions: Array<out String>,
+//        grantResults: IntArray
+//    ) {
+//        if (requestCode == PERMISSIONS_REQUEST_PHONE_CALL) {
+//            if ((grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED)
+//            ) {
+//                makePhoneCall(phone.text.toString())
+//            }
+//
+//        } else {
+//            phone.isEnabled = false
+//        }
+//    }
 
 
     private fun setListeners() {
         phone.setOnClickListener(this)
+        website.setOnClickListener(this)
     }
 
 }

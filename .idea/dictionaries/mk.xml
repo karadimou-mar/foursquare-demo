@@ -7,8 +7,10 @@
       <w>instagram</w>
       <w>latlng</w>
       <w>lngs</w>
+      <w>okhttp</w>
       <w>textview</w>
       <w>viewmodel</w>
+      <w>webpage</w>
     </words>
   </dictionary>
 </component>
